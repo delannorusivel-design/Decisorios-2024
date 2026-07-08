@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Pendências FAG — TCE/AM · SECEX</title>
+<style>
+  :root{
+    --bg: #F4EFE3;
+    --bg-panel: #FBF8F1;
+    --line: #E1D6BE;
+    --ink: #33291C;
+    --ink-soft: #6B5E48;
+    --gold: #A9822E;
+    --gold-dark: #7C5E1E;
+    --red: #A5432E;
+    --red-bg: #F6E2DC;
+    --amber: #96712A;
+    --amber-bg: #F3E7CB;
+    --green: #3D6B3F;
+    --green-bg: #DEEBDA;
+    --gray-bg: #E7E2D5;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(51,41,28,0.06), 0 4px 14px rgba(51,41,28,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: "Iowan Old Style","Georgia", "Times New Roman", serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 64px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    border-bottom: 2px solid var(--gold);
+    padding-bottom:18px;
+    margin-bottom:28px;
+  }
+  .brand-eyebrow{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--gold-dark);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  h1{
+    font-size:26px;
+    margin:0 0 4px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .subtitle{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color:var(--ink-soft);
+    font-size:13.5px;
+    max-width:640px;
+  }
+  .updated{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:right;
+  }
+
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:28px;
+  }
+  .stat{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .stat:hover{transform:translateY(-2px);}
+  .stat.active{outline:2px solid var(--gold); outline-offset:-2px;}
+  .stat .num{
+    font-size:30px;
+    font-weight:700;
+    line-height:1;
+    margin-bottom:6px;
+    font-family: "Iowan Old Style","Georgia",serif;
+  }
+  .stat .lbl{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.3;
+  }
+  .stat .bar{position:absolute; left:0; bottom:0; height:4px; width:100%;}
+  .stat.total .bar{background:var(--gold);}
+  .stat.prescrita .num{color:var(--red);}
+  .stat.prescrita .bar{background:var(--red);}
+  .stat.limitrofe .num{color:var(--amber);}
+  .stat.limitrofe .bar{background:var(--amber);}
+  .stat.curso .num{color:var(--green);}
+  .stat.curso .bar{background:var(--green);}
+
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px 22px;
+    margin-bottom:24px;
+  }
+  .panel h2{
+    font-size:15px;
+    margin:0 0 14px;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--gold-dark);
+    font-weight:700;
+  }
+
+  .chart-row{display:flex; align-items:flex-end; gap:10px; height:150px; padding-top:8px;}
+  .chart-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .chart-bar{width:60%; border-radius:4px 4px 0 0; transition:height .5s ease;}
+  .chart-val{font-family:"Helvetica Neue",Arial,sans-serif; font-size:12px; font-weight:700; margin-bottom:4px;}
+  .chart-lbl{font-family:"Helvetica Neue",Arial,sans-serif; font-size:10.5px; color:var(--ink-soft); margin-top:6px; text-align:center; line-height:1.25;}
+
+  .controls{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:16px;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+  }
+  .controls input[type="text"]{
+    flex:1;
+    min-width:200px;
+    padding:9px 12px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:#fff;
+    font-size:13.5px;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .controls select{
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:#fff;
+    font-size:13px;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .controls .count{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-left:auto;
+  }
+  .btn{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:12.5px;
+    background:var(--gold);
+    color:#fff;
+    border:none;
+    padding:9px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btn:hover{background:var(--gold-dark);}
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+  }
+  .btn.ghost:hover{border-color:var(--gold);color:var(--gold-dark);}
+
+  table{width:100%; border-collapse:collapse; font-family:"Helvetica Neue",Arial,sans-serif; font-size:13px;}
+  thead th{
+    text-align:left;
+    padding:9px 10px;
+    background:var(--gray-bg);
+    color:var(--ink-soft);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  thead th:hover{color:var(--gold-dark);}
+  thead th .arrow{opacity:.4; font-size:10px; margin-left:3px;}
+  tbody td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:hover{background:#F7F1E1;}
+  .badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .badge.prescrita{background:var(--red-bg); color:var(--red);}
+  .badge.limitrofe{background:var(--amber-bg); color:var(--amber);}
+  .badge.curso{background:var(--green-bg); color:var(--green);}
+  .badge.semdata{background:var(--gray-bg); color:var(--ink-soft);}
+  .mono{font-variant-numeric:tabular-nums;}
+  .empty{
+    text-align:center;
+    padding:36px 0;
+    color:var(--ink-soft);
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:13.5px;
+  }
+
+  footer{
+    margin-top:20px;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .legal-note{
+    background:#F3E7CB;
+    border:1px solid var(--line);
+    border-left:4px solid var(--amber);
+    border-radius:6px;
+    padding:12px 14px;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:12.5px;
+    color:var(--ink);
+    margin-bottom:24px;
+    line-height:1.55;
+  }
+
+  @media (max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    header{flex-direction:column; align-items:flex-start;}
+    .updated{text-align:left;}
+  }
+
+  .print-btn{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:13px;
+    font-weight:700;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    padding:10px 16px;
+    border-radius:7px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .print-btn:hover{background:var(--gold-dark);}
+  .print-bar{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom:10px;
+  }
+
+  @media print{
+    @page{ size: A4 landscape; margin: 12mm; }
+    *{ -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    body{ background:#fff; }
+    .wrap{ max-width:none; padding:0; margin:0; }
+    .print-bar, .controls, footer .btn{ display:none !important; }
+    header{ margin-bottom:16px; padding-bottom:10px; }
+    .stats{ margin-bottom:16px; }
+    .stat{ box-shadow:none; break-inside:avoid; }
+    .panel{ box-shadow:none; border:1px solid var(--line); break-inside:avoid; padding:14px 16px; margin-bottom:14px; }
+    .panel:has(#tbody){ break-inside:auto; }
+    #chart{ break-inside:avoid; }
+    table{ font-size:11px; }
+    thead{ display: table-header-group; }
+    tr{ break-inside: avoid; }
+    .empty{ display:none !important; }
+    .legal-note{ break-inside:avoid; }
+    a[href]:after{ content:''; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="brand-eyebrow">TCE/AM · SECEX · DICAMI</div>
+      <h1>Painel de Pendências de FAG — PCAs 2018–2021</h1>
+      <div class="subtitle">Determinações de abertura de Fiscalização de Atos de Gestão ainda não cumpridas, classificadas quanto à prescrição intercorrente (Lei nº 9.873/1999, art. 1º, §1º, aplicada por analogia).</div>
+    </div>
+    <div class="updated">Base: planilha "FAGS 2018 a 2021 — DICAMI"<br>Data-base do cálculo: 08/07/2026</div>
+  </header>
+
+  <div class="legal-note">
+    <strong>Nota metodológica:</strong> os prazos foram calculados a partir do ano do acórdão determinante (a planilha não registra dia/mês na maioria dos casos). Resultados na faixa "limítrofe" ou "prescrição provável" exigem confirmação da data exata de publicação junto ao SPEDE2 antes de qualquer proposta formal de reconhecimento de prescrição.
+  </div>
+
+  <div class="print-bar">
+    <button class="print-btn" id="printBtn">🖨️ Imprimir / salvar PDF</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="panel">
+    <h2>Distribuição por status</h2>
+    <div class="chart-row" id="chart"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Processos pendentes</h2>
+    <div class="controls">
+      <input type="text" id="search" placeholder="Buscar por município, processo ou acórdão...">
+      <select id="statusFilter">
+        <option value="all">Todos os status</option>
+        <option value="PRESCRITA (provável)">Prescrição provável</option>
+        <option value="LIMÍTROFE (verificar data exata)">Limítrofe</option>
+        <option value="EM CURSO (não prescrita)">Em curso</option>
+        <option value="SEM DATA IDENTIFICÁVEL">Sem data</option>
+      </select>
+      <select id="exercicioFilter">
+        <option value="all">Todos os exercícios</option>
+        <option value="2018">2018</option>
+        <option value="2019">2019</option>
+        <option value="2020">2020</option>
+        <option value="2021">2021</option>
+      </select>
+      <button class="btn ghost" id="clearBtn">Limpar filtros</button>
+      <button class="btn" id="csvBtn">Exportar CSV</button>
+      <span class="count" id="resultCount"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th data-key="municipio">Município <span class="arrow">↕</span></th>
+            <th data-key="exercicio">Exercício <span class="arrow">↕</span></th>
+            <th data-key="pca">Processo PCA <span class="arrow">↕</span></th>
+            <th data-key="acordao">Acórdão <span class="arrow">↕</span></th>
+            <th data-key="anos">Anos decorridos <span class="arrow">↕</span></th>
+            <th data-key="status">Status <span class="arrow">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg" style="display:none;">Nenhum processo encontrado com os filtros aplicados.</div>
+    </div>
+  </div>
+
+  <footer>
+    Fonte: planilha de controle "FAGS 2018 a 2021 — DICAMI" (61 municípios × 4 exercícios de PCA). Universo de 105 determinações de FAG pendentes de autuação, de um total de 206 determinações registradas. Base legal: Lei nº 9.873/1999, art. 1º, §1º; STF, Tema 899 (RE 636.886/AL); Resolução TCU nº 344/2022; Nota Recomendatória ATRICON-IRB-CNPTC-ABRACOM nº 02/2023 — aplicados por analogia na ausência de resolução própria do TCE/AM sobre prescrição.
+  </footer>
+
+</div>
+
+<script>
+const DATA = [{"municipio": "Amaturá", "exercicio": "2018", "pca": "10944/2019", "acordao": "185/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Anamã", "exercicio": "2018", "pca": "11674/2019", "acordao": "200/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Benjamin Constant", "exercicio": "2018", "pca": "11465/2019", "acordao": "150/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Careiro da Várzea", "exercicio": "2018", "pca": "11442/2019", "acordao": "47/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Codajás", "exercicio": "2018", "pca": "11278/2019", "acordao": "124/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Ipixuna", "exercicio": "2018", "pca": "11296/2019", "acordao": "125/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Iranduba", "exercicio": "2018", "pca": "11063/2019", "acordao": "128/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Japurá", "exercicio": "2018", "pca": "11358/2019", "acordao": "121/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Juruá", "exercicio": "2018", "pca": "11785/2019", "acordao": "156/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Lábrea", "exercicio": "2018", "pca": "12821/2019", "acordao": "75/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Manaquiri", "exercicio": "2018", "pca": "11399/2019", "acordao": "138/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Maraã", "exercicio": "2018", "pca": "11773/2019", "acordao": "27/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Maués", "exercicio": "2018", "pca": "11017/2019", "acordao": "29/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Parintins", "exercicio": "2018", "pca": "11413/2019", "acordao": "198/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Rio Preto da Eva", "exercicio": "2018", "pca": "11131/2019", "acordao": "81/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "São Paulo de Olivença", "exercicio": "2018", "pca": "12364/2019", "acordao": "144/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "São Sebastião do Uatumã", "exercicio": "2018", "pca": "11203/2019", "acordao": "15/2021", "ano_ref": 2021, "anos": 5.0, "status": "PRESCRITA (provável)"}, {"municipio": "Santa Isabel do Rio Negro", "exercicio": "2018", "pca": "11080/2019", "acordao": "149/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tabatinga", "exercicio": "2018", "pca": "11671/2019", "acordao": "195/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tapauá", "exercicio": "2018", "pca": "11613/2019", "acordao": "131/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Uarini", "exercicio": "2018", "pca": "11661/2019", "acordao": "", "ano_ref": null, "anos": null, "status": "SEM DATA IDENTIFICÁVEL"}, {"municipio": "Urucará", "exercicio": "2018", "pca": "11682/2019", "acordao": "114/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Amaturá", "exercicio": "2019", "pca": "11922/2020", "acordao": "78/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Anori", "exercicio": "2019", "pca": "11681/2020", "acordao": "29/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Anamã", "exercicio": "2019", "pca": "12297/2020", "acordao": "28/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Beruri", "exercicio": "2019", "pca": "12059/2020", "acordao": "26/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Boa Vista do Ramos", "exercicio": "2019", "pca": "12461/2020", "acordao": "100/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Boca do Acre", "exercicio": "2019", "pca": "11565/2020", "acordao": "1602/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Borba", "exercicio": "2019", "pca": "12459/2020", "acordao": "104/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Careiro da Várzea", "exercicio": "2019", "pca": "12273/2020", "acordao": "93/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Canutama", "exercicio": "2019", "pca": "12279/2020", "acordao": "01/09/2024", "ano_ref": 2024, "anos": 1.8, "status": "EM CURSO (não prescrita)"}, {"municipio": "Coari", "exercicio": "2019", "pca": "12463/2020", "acordao": "23/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Codajás", "exercicio": "2019", "pca": "11697/2020", "acordao": "83/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Humaitá", "exercicio": "2019", "pca": "12460/2020", "acordao": "105/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Iranduba", "exercicio": "2019", "pca": "12209/2020", "acordao": "91/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Itamarati", "exercicio": "2019", "pca": "12437/2020", "acordao": "103/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Japurá", "exercicio": "2019", "pca": "N° 11792/2020", "acordao": "54/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Juruá", "exercicio": "2019", "pca": "N° 12435/2020", "acordao": "01/11/2024", "ano_ref": 2024, "anos": 1.7, "status": "EM CURSO (não prescrita)"}, {"municipio": "Jutaí", "exercicio": "2019", "pca": "N° 12228/2020", "acordao": "56/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Nova Olinda do Norte", "exercicio": "2019", "pca": "12150/2020", "acordao": "65/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Pauini", "exercicio": "2019", "pca": "12466/2020", "acordao": "62/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Parintins", "exercicio": "2019", "pca": "11485/2020", "acordao": "199/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Presidente Figueiredo", "exercicio": "2019", "pca": "11581/2020", "acordao": "101/2023 e 2393/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "São Gabriel da Cachoeira", "exercicio": "2019", "pca": "12087/2020", "acordao": "103/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Santo Antônio do Içá", "exercicio": "2019", "pca": "12457/2020", "acordao": "170/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "São Sebastião do Uatumã", "exercicio": "2019", "pca": "N° 11608/2020", "acordao": "16/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Santa Isabel do Rio Negro", "exercicio": "2019", "pca": "N° 11816/2020", "acordao": "102/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Silves", "exercicio": "2019", "pca": "N° 11285/2020", "acordao": "157/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tonantins", "exercicio": "2019", "pca": "N° 12319/2020", "acordao": "79/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tabatinga", "exercicio": "2019", "pca": "N° 11924/2020", "acordao": "80/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Tefé", "exercicio": "2019", "pca": "N° 11789/2020", "acordao": "71/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tapauá", "exercicio": "2019", "pca": "N° 12299/2020", "acordao": "01/03/2024", "ano_ref": 2024, "anos": 2.4, "status": "EM CURSO (não prescrita)"}, {"municipio": "Uarini", "exercicio": "2019", "pca": "N° 12318/2020", "acordao": "01/07/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Urucará", "exercicio": "2019", "pca": "N° 11940/2020", "acordao": "46/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Alvarães", "exercicio": "2020", "pca": "12954/2021", "acordao": "63/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Autazes", "exercicio": "2020", "pca": "11578/2021", "acordao": "203/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Beruri", "exercicio": "2020", "pca": "12644/2021", "acordao": "160/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Benjamin Constant", "exercicio": "2020", "pca": "11643/2021", "acordao": "112/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Boca do Acre", "exercicio": "2020", "pca": "11763/2021", "acordao": "181/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Caapiranga", "exercicio": "2020", "pca": "12305/2021", "acordao": "111/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Careiro da Várzea", "exercicio": "2020", "pca": "12867/2021", "acordao": "46/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Canutama", "exercicio": "2020", "pca": "12058/2021", "acordao": "75/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Eirunepé", "exercicio": "2020", "pca": "12868/2021", "acordao": "89/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Fonte Boa", "exercicio": "2020", "pca": "11368/2021", "acordao": "71/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Itacoatiara", "exercicio": "2020", "pca": "11722/2021", "acordao": "176/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Itamarati", "exercicio": "2020", "pca": "12798/2021", "acordao": "88/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Itapiranga", "exercicio": "2020", "pca": "11372/2021", "acordao": "68/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Juruá", "exercicio": "2020", "pca": "12372/2021", "acordao": "01/11/2023", "ano_ref": 2023, "anos": 2.7, "status": "EM CURSO (não prescrita)"}, {"municipio": "Lábrea", "exercicio": "2020", "pca": "12962/2021", "acordao": "62/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Manacapuru", "exercicio": "2020", "pca": "12194/2021", "acordao": "96/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Manaquiri", "exercicio": "2020", "pca": "11642/2021", "acordao": "118/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Maués", "exercicio": "2020", "pca": "11873/2021", "acordao": "37/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Nova Olinda do Norte", "exercicio": "2020", "pca": "11709/2021", "acordao": "172/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Pauini", "exercicio": "2020", "pca": "12866/2021", "acordao": "61/2023\n(Pedido de Tomada de Conta)", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Parintins", "exercicio": "2020", "pca": "11645/2021", "acordao": "66/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Presidente Figueiredo", "exercicio": "2020", "pca": "11989/2021", "acordao": "53/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Santo Antônio do Içá", "exercicio": "2020", "pca": "12958/2021", "acordao": "27/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "São Sebastião do Uatumã", "exercicio": "2020", "pca": "12072/2021", "acordao": "86/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Silves", "exercicio": "2020", "pca": "11395/2021", "acordao": "76/2022", "ano_ref": 2022, "anos": 4.0, "status": "PRESCRITA (provável)"}, {"municipio": "Tonantins", "exercicio": "2020", "pca": "12881/2021", "acordao": "44/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tapauá", "exercicio": "2020", "pca": "12882/2021", "acordao": "109/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Uarini", "exercicio": "2020", "pca": "11707/2021", "acordao": "164/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Amaturá", "exercicio": "2021", "pca": "11799/2022", "acordao": "163/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Atalaia do Norte", "exercicio": "2021", "pca": "12005/2022", "acordao": "142/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Autazes", "exercicio": "2021", "pca": "11802/2022", "acordao": "166/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Barcelos", "exercicio": "2021", "pca": "12259/2022", "acordao": "202/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Beruri", "exercicio": "2021", "pca": "12247/2022", "acordao": "96/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Careiro", "exercicio": "2021", "pca": "11823/2022", "acordao": "01/10/2024", "ano_ref": 2024, "anos": 1.8, "status": "EM CURSO (não prescrita)"}, {"municipio": "Canutama", "exercicio": "2021", "pca": "11391/2022", "acordao": "132/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Envira", "exercicio": "2021", "pca": "12240/2022", "acordao": "13/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Humaitá", "exercicio": "2021", "pca": "12171/2022", "acordao": "28/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Itacoatiara", "exercicio": "2021", "pca": "12064/2022", "acordao": "68/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Itapiranga", "exercicio": "2021", "pca": "12106/2022", "acordao": "58/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Jutaí", "exercicio": "2021", "pca": "11764/2022", "acordao": "136/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Manaquiri", "exercicio": "2021", "pca": "12015/2022", "acordao": "30/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Manicoré", "exercicio": "2021", "pca": "11964/2022", "acordao": "69/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Novo Airão", "exercicio": "2021", "pca": "12101/2022", "acordao": "41/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Novo Airupuanã", "exercicio": "2021", "pca": "12173/2022", "acordao": "33/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Presidente Figueiredo", "exercicio": "2021", "pca": "12051/2022", "acordao": "DESPACHO 64/2024", "ano_ref": 2024, "anos": 2.0, "status": "EM CURSO (não prescrita)"}, {"municipio": "Rio Preto da Eva", "exercicio": "2021", "pca": "11810/2022", "acordao": "01/02/2024", "ano_ref": 2024, "anos": 2.4, "status": "EM CURSO (não prescrita)"}, {"municipio": "Santo Antônio do Içá", "exercicio": "2021", "pca": "11962/2022", "acordao": "1587/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "São Paulo de Olivença", "exercicio": "2021", "pca": "12212/2022", "acordao": "97/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Santa Isabel do Rio Negro", "exercicio": "2021", "pca": "11579/2022", "acordao": "201/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tonantins", "exercicio": "2021", "pca": "12202/2022", "acordao": "46/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}, {"municipio": "Tapauá", "exercicio": "2021", "pca": "11443/2022", "acordao": "182/2023", "ano_ref": 2023, "anos": 3.0, "status": "LIMÍTROFE (verificar data exata)"}];
+
+const STATUS_META = {
+  'PRESCRITA (provável)': {cls:'prescrita', short:'Prescrição provável', color:'#A5432E'},
+  'LIMÍTROFE (verificar data exata)': {cls:'limitrofe', short:'Limítrofe', color:'#96712A'},
+  'EM CURSO (não prescrita)': {cls:'curso', short:'Em curso', color:'#3D6B3F'},
+  'SEM DATA IDENTIFICÁVEL': {cls:'semdata', short:'Sem data', color:'#8A8065'},
+};
+
+let sortKey = 'anos';
+let sortDir = -1;
+let activeStatCard = null;
+
+function renderStats(){
+  const total = DATA.length;
+  const counts = {};
+  DATA.forEach(d => counts[d.status] = (counts[d.status]||0)+1);
+  const statsEl = document.getElementById('stats');
+  statsEl.innerHTML = `
+    <div class="stat total" data-filter="all">
+      <div class="num">${total}</div>
+      <div class="lbl">Determinações de FAG pendentes<br>(universo total analisado)</div>
+      <div class="bar"></div>
+    </div>
+    <div class="stat prescrita" data-filter="PRESCRITA (provável)">
+      <div class="num">${counts['PRESCRITA (provável)']||0}</div>
+      <div class="lbl">Prescrição intercorrente provável<br>(&gt; 3 anos de inércia)</div>
+      <div class="bar"></div>
+    </div>
+    <div class="stat limitrofe" data-filter="LIMÍTROFE (verificar data exata)">
+      <div class="num">${counts['LIMÍTROFE (verificar data exata)']||0}</div>
+      <div class="lbl">Faixa limítrofe (~3 anos)<br>exige checagem de data exata</div>
+      <div class="bar"></div>
+    </div>
+    <div class="stat curso" data-filter="EM CURSO (não prescrita)">
+      <div class="num">${counts['EM CURSO (não prescrita)']||0}</div>
+      <div class="lbl">Em curso — não prescritas<br>seguem no acompanhamento SECEX</div>
+      <div class="bar"></div>
+    </div>
+  `;
+  statsEl.querySelectorAll('.stat').forEach(card => {
+    card.addEventListener('click', () => {
+      const f = card.dataset.filter;
+      document.getElementById('statusFilter').value = f;
+      statsEl.querySelectorAll('.stat').forEach(c=>c.classList.remove('active'));
+      card.classList.add('active');
+      applyFilters();
+    });
+  });
+}
+
+function renderChart(){
+  const counts = {};
+  Object.keys(STATUS_META).forEach(k => counts[k]=0);
+  DATA.forEach(d => counts[d.status]++);
+  const max = Math.max(...Object.values(counts), 1);
+  const chart = document.getElementById('chart');
+  chart.innerHTML = Object.entries(counts).map(([status,count]) => {
+    const meta = STATUS_META[status];
+    const h = Math.max(4, Math.round((count/max)*120));
+    return `<div class="chart-col">
+      <div class="chart-val" style="color:${meta.color}">${count}</div>
+      <div class="chart-bar" style="height:${h}px; background:${meta.color};"></div>
+      <div class="chart-lbl">${meta.short}</div>
+    </div>`;
+  }).join('');
+}
+
+function applyFilters(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const exercicio = document.getElementById('exercicioFilter').value;
+
+  let rows = DATA.filter(d => {
+    if (status !== 'all' && d.status !== status) return false;
+    if (exercicio !== 'all' && d.exercicio !== exercicio) return false;
+    if (q){
+      const hay = `${d.municipio} ${d.pca} ${d.acordao}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (sortKey === 'anos'){
+      av = av==null ? -1 : av; bv = bv==null ? -1 : bv;
+      return (av-bv)*sortDir;
+    }
+    av = (av||'').toString().toLowerCase(); bv = (bv||'').toString().toLowerCase();
+    if (av<bv) return -1*sortDir;
+    if (av>bv) return 1*sortDir;
+    return 0;
+  });
+
+  renderTable(rows);
+  document.getElementById('resultCount').textContent = `${rows.length} de ${DATA.length} processos`;
+}
+
+function renderTable(rows){
+  const tbody = document.getElementById('tbody');
+  const emptyMsg = document.getElementById('emptyMsg');
+  if (rows.length === 0){
+    tbody.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+  tbody.innerHTML = rows.map(d => {
+    const meta = STATUS_META[d.status];
+    const anos = d.anos==null ? '—' : `${d.anos} anos`;
+    return `<tr>
+      <td>${d.municipio}</td>
+      <td class="mono">${d.exercicio}</td>
+      <td class="mono">${d.pca||'-'}</td>
+      <td>${(d.acordao||'-').replace(/\n/g,' ')}</td>
+      <td class="mono">${anos}</td>
+      <td><span class="badge ${meta.cls}">${meta.short}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function toCSV(rows){
+  const header = ['Municipio','Exercicio','Processo PCA','Acordao','Anos decorridos','Status'];
+  const lines = [header.join(';')];
+  rows.forEach(d => {
+    lines.push([d.municipio, d.exercicio, d.pca, (d.acordao||'').replace(/\n/g,' '), d.anos ?? '', d.status].map(v => `"${(v??'').toString().replace(/"/g,'""')}"`).join(';'));
+  });
+  return lines.join('\n');
+}
+
+document.getElementById('search').addEventListener('input', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', () => {
+  document.querySelectorAll('.stat').forEach(c=>c.classList.remove('active'));
+  applyFilters();
+});
+document.getElementById('exercicioFilter').addEventListener('change', applyFilters);
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('search').value='';
+  document.getElementById('statusFilter').value='all';
+  document.getElementById('exercicioFilter').value='all';
+  document.querySelectorAll('.stat').forEach(c=>c.classList.remove('active'));
+  applyFilters();
+});
+document.getElementById('csvBtn').addEventListener('click', () => {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const exercicio = document.getElementById('exercicioFilter').value;
+  let rows = DATA.filter(d => {
+    if (status !== 'all' && d.status !== status) return false;
+    if (exercicio !== 'all' && d.exercicio !== exercicio) return false;
+    if (q){
+      const hay = `${d.municipio} ${d.pca} ${d.acordao}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const csv = toCSV(rows);
+  const blob = new Blob(["\uFEFF"+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'pendencias_fag_filtrado.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if (sortKey === key){ sortDir *= -1; } else { sortKey = key; sortDir = 1; }
+    applyFilters();
+  });
+});
+
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+renderStats();
+renderChart();
+applyFilters();
+</script>
+</body>
+</html>
